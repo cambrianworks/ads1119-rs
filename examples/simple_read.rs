@@ -1,13 +1,12 @@
-use std::time::Duration;
+use std::{error::Error, time::Duration};
 
 use linux_embedded_hal::I2cdev;
 
-use ads1119::{Ads1119, MuxFlags, STATUS_CONV_RDY, single_ended_rdata_to_scaled_voltage};
-
+use ads1119::{single_ended_rdata_to_scaled_voltage, Ads1119, MuxFlags, STATUS_CONV_RDY};
 
 /// This main is an example of using the library to read single-ended data
 /// off each of the four inputs.
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let dev = I2cdev::new("/dev/i2c-7").unwrap();
     let mut driver = Ads1119::new(dev, 0x40);
 

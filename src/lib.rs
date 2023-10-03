@@ -1,7 +1,4 @@
-use std::time::Duration;
-
 use embedded_hal::i2c::I2c;
-use linux_embedded_hal::I2cdev;
 
 pub struct Ads1119<I2C> {
     i2c: I2C,
@@ -37,7 +34,7 @@ where
             .write_read(
                 self.address,
                 // set the config register bit
-                &[CmdFlags::RREG | RegFlags::CONFIG],
+                &[CmdFlags::RREG | RegSelectFlags::CONFIG],
                 &mut read_buffer,
             )
             .and(Ok(read_buffer[0]))
@@ -48,7 +45,7 @@ where
     /// See [MuxFlags]
     pub fn write_config(&mut self, value: u8) -> Result<(), I2C::Error> {
         self.i2c
-            .write(self.address, &[CmdFlags::WREG | RegFlags::CONFIG, value]) //A0
+            .write(self.address, &[CmdFlags::WREG | RegSelectFlags::CONFIG, value]) //A0
                                                                               // .write(self.address, &[CmdFlags::WREG | RegFlags::CONFIG, 0xA0]) //A2
     }
 
@@ -56,15 +53,16 @@ where
     ///
     /// See 8.5.3.6 RREG
     /// See 8.6.1 and 8.6.2.2
-    ///
-    /// The only bit that matters is the MSB. If set, a new converion is ready to be read
+    /// See [STATUS_CONV_RDY]
+    /// 
+    /// The only bit that matters is the MSB. If set, a new conversion is ready to be read
     /// with [read_data]. If it isn't set, the application should wait and check the status register again.
     pub fn read_status(&mut self) -> Result<u8, I2C::Error> {
         let mut read_buffer = [0];
         self.i2c
             .write_read(
                 self.address,
-                &[CmdFlags::RREG | RegFlags::STATUS],
+                &[CmdFlags::RREG | RegSelectFlags::STATUS],
                 &mut read_buffer,
             )
             .and(Ok(read_buffer[0]))
@@ -90,7 +88,7 @@ where
     ///
     /// See 8.5.3.5 RDATA
     /// See 8.5.2 Data Format
-     pub fn read_data(&mut self) -> Result<u16, I2C::Error> {
+    pub fn read_data(&mut self) -> Result<u16, I2C::Error> {
         let mut read_buffer = [0u8, 0u8];
         self.i2c
             .write_read(self.address, &[CmdFlags::RDATA], &mut read_buffer)
@@ -116,8 +114,7 @@ pub fn single_ended_rdata_to_scaled_voltage(raw_data: u16) -> f32 {
     const REFERENCE_VOLTAGE: f32 = 2.048;
 
     // Scale the voltage to the desired range (e.g., 0V to 2.048V)
-    let scaled_voltage = (unscaled_voltage as f32 / 0x7FFF as f32) * REFERENCE_VOLTAGE;
-    scaled_voltage
+    (unscaled_voltage as f32 / 0x7FFF as f32) * REFERENCE_VOLTAGE
 }
 /// Command Flags
 /// See 8.5.3
@@ -146,10 +143,12 @@ impl MuxFlags {
 /// the correct register
 /// See 8.5.3 (RREG)
 /// See 8.6.1 - Table 8 (Register column)
-pub struct RegFlags;
-impl RegFlags {
+pub struct RegSelectFlags;
+impl RegSelectFlags {
     pub const CONFIG: u8 = 0b0000_0000;
     pub const STATUS: u8 = 0b0000_0100;
 }
 
+/// Status register bit mask for checking the status register for a "conversion result ready" value
+/// See 8.6.2.2
 pub const STATUS_CONV_RDY: u8 = 0b1000_0000;
