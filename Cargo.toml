@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 embedded-hal = "=1.0.0-alpha.9"
 linux-embedded-hal = { version = "=0.4.0-alpha.3", git = "https://github.com/rust-embedded/linux-embedded-hal", rev = "1f97fd" } 
-nb = "1"
+# nb = "1"
 
 [dev-dependencies]
 embedded-hal-mock = "0.9"
