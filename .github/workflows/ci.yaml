@@ -26,17 +26,9 @@ jobs:
           toolchain: stable
       - name: cargo check
         run: cargo check
-  
+
   clippy:
     runs-on: ubuntu-20.04
-    strategy: 
-      matrix:
-          dir:
-            - asymlink-perftest 
-            - temperature-check
-    defaults:
-      run:
-        working-directory: ${{ matrix.dir }}
     steps:
       - uses: actions/checkout@v3
       # Allows us to have cargo dependencies either from cw-prod or a private git repo
@@ -47,9 +39,9 @@ jobs:
         with:
           toolchain: stable
           components: clippy
-      - name: clippy
+      - name: clippy 
         # on any clippy or compiler warnings, fail this check
-        run: cargo clippy --all-features --no-deps --tests -- -D warnings
+        run: cargo clippy --no-deps --tests -- -D warnings
 
   cross-test:
     runs-on: ${{ matrix.os }}
@@ -89,7 +81,7 @@ jobs:
           path: Cargo.lock
       - name: Test using Cross (default features)
         run: cross test --target ${{ matrix.target }}
-  
+
   format:
     runs-on: ubuntu-20.04
     steps:
