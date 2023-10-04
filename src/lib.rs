@@ -44,9 +44,11 @@ where
     ///
     /// See [MuxFlags]
     pub fn write_config(&mut self, value: u8) -> Result<(), I2C::Error> {
-        self.i2c
-            .write(self.address, &[CmdFlags::WREG | RegSelectFlags::CONFIG, value]) //A0
-                                                                              // .write(self.address, &[CmdFlags::WREG | RegFlags::CONFIG, 0xA0]) //A2
+        self.i2c.write(
+            self.address,
+            &[CmdFlags::WREG | RegSelectFlags::CONFIG, value],
+        ) //A0
+          // .write(self.address, &[CmdFlags::WREG | RegFlags::CONFIG, 0xA0]) //A2
     }
 
     /// Read the status register.
@@ -54,7 +56,7 @@ where
     /// See 8.5.3.6 RREG
     /// See 8.6.1 and 8.6.2.2
     /// See [STATUS_CONV_RDY]
-    /// 
+    ///
     /// The only bit that matters is the MSB. If set, a new conversion is ready to be read
     /// with [read_data]. If it isn't set, the application should wait and check the status register again.
     pub fn read_status(&mut self) -> Result<u8, I2C::Error> {
