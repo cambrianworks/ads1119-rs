@@ -19,6 +19,12 @@ This is a partial driver and does not implement all of the ADS1119's interface (
 - calibration
 - utilizing the built-in noise filtering
 
+# Running the examples
 
+The example assumes you have an ADS119 on I2C bus 7 at address 0x40.
+
+```sh
+cargo run --example simple_read
+```
 
 
