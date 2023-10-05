@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-embedded-hal = "=1.0.0-alpha.9"
-linux-embedded-hal = { version = "=0.4.0-alpha.3", git = "https://github.com/rust-embedded/linux-embedded-hal", rev = "1f97fd" } 
+# the latest RC
+embedded-hal = "=1.0.0-rc.1"
+# compatible with embedded-hal 1.0.0-rc.1
+linux-embedded-hal = { version = "=0.4.0-alpha.3", git = "https://github.com/rust-embedded/linux-embedded-hal", rev = "27daf71" } 
 
 [examples]
 name = "simple_read"
