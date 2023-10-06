@@ -154,3 +154,41 @@ impl RegSelectFlags {
 /// Status register bit mask for checking the status register for a "conversion result ready" value
 /// See 8.6.2.2
 pub const STATUS_CONV_RDY: u8 = 0b1000_0000;
+
+#[cfg(test)]
+mod test {
+
+    const EPS: f32 = 0.0001;
+    const V_MAX: f32 = 2.048;
+
+    use super::*;
+    #[test]
+    fn rdata_to_voltage_0() {
+        let data: u16 = 0b0000_0000_0000_0000;
+        assert_eq!(single_ended_rdata_to_scaled_voltage(data), 0.0f32);
+    }
+
+    #[test]
+    fn rdata_to_voltage_max_pos() {
+        let data: u16 = 0b0111_1111_1111_1111;
+        assert!(single_ended_rdata_to_scaled_voltage(data) - 2.048f32 < EPS);
+    }
+
+    #[test]
+    fn rdata_to_voltage_lt_max() {
+        let data: u16 = 0b0111_1111_1111_1110;
+        assert!(single_ended_rdata_to_scaled_voltage(data) < V_MAX);
+    }
+
+    #[test]
+    fn rdata_to_voltage_max_neg() {
+        let data: u16 = 0b1000_0000_0000_0000;
+        assert!(dbg!((single_ended_rdata_to_scaled_voltage(data) - -2.048f32).abs()) < EPS);
+    }
+
+    #[test]
+    fn rdata_to_voltage_gt_max_neg() {
+        let data: u16 = 0b1000_0000_0000_0001;
+        assert!(dbg!(single_ended_rdata_to_scaled_voltage(data)) > -V_MAX);
+    }
+}
