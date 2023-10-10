@@ -162,6 +162,7 @@ impl CmdFlags {
 /// See 8.6.2.1 Configuration Register
 /// See 8.3.1 Multiplexer
 bitflags! {
+    #[derive(Clone, Debug)]
     pub struct MuxFlags: u8 {
     const AN0_SINGLE_ENDED= 0b0110_0000;
     const AN1_SINGLE_ENDED= 0b1000_0000;
