@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use bitflags::bitflags;
 use embedded_hal::i2c::I2c;
 
 pub struct Ads1119<I2C> {
@@ -96,6 +99,31 @@ where
             .write_read(self.address, &[CmdFlags::RDATA], &mut read_buffer)
             .and(Ok(u16::from_be_bytes(read_buffer)))
     }
+
+    /// Read data from the given input.
+    ///
+    /// This function has no pre-conditions and can be called repeatedly.
+    pub fn read_input(&mut self, mux: MuxFlags) -> Result<u16, I2C::Error> {
+        // write the config to set the input we want. Leave other fields unset (default)
+        self.write_config(mux.bits())?;
+
+        // start a "one-shot" conversion on the selected input
+        let _ = self.start_sync()?;
+
+        // wait until the status register tells us there is data to read
+        loop {
+            let status = self.read_status()?;
+            // println!("CURRENT STATUS: {:#010b} ", status);
+            if status & STATUS_CONV_RDY != 0 {
+                // println!("--> Data is READY: {:#010b} ", status);
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(10))
+        }
+
+        // read the conversion data
+        self.read_data()
+    }
 }
 
 /// Interpret the raw data read from one of the inputs as a voltage
@@ -133,12 +161,13 @@ impl CmdFlags {
 /// Input Mux flags
 /// See 8.6.2.1 Configuration Register
 /// See 8.3.1 Multiplexer
-pub struct MuxFlags;
-impl MuxFlags {
-    pub const AN0_SINGLE_ENDED: u8 = 0b0110_0000;
-    pub const AN1_SINGLE_ENDED: u8 = 0b1000_0000;
-    pub const AN2_SINGLE_ENDED: u8 = 0b1010_0000;
-    pub const AN3_SINGLE_ENDED: u8 = 0b1100_0000;
+bitflags! {
+    pub struct MuxFlags: u8 {
+    const AN0_SINGLE_ENDED= 0b0110_0000;
+    const AN1_SINGLE_ENDED= 0b1000_0000;
+    const AN2_SINGLE_ENDED= 0b1010_0000;
+    const AN3_SINGLE_ENDED= 0b1100_0000;
+    }
 }
 
 /// Register flags meant to be to combined with eh RREG command to select

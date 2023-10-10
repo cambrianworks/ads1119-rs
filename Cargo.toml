@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bitflags = "2.4"
 # the latest RC
 embedded-hal = "=1.0.0-rc.1"
 # compatible with embedded-hal 1.0.0-rc.1

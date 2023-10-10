@@ -33,13 +33,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         ] {
             // write the config to set the input we want. Leave other fields unset (default)
             // println!("writing config...");
-            driver.write_config(mux).unwrap();
+            driver.write_config(mux.bits()).unwrap();
 
             // read back the config as a sanity check
             let config = driver.read_config().unwrap();
             println!("Read config value: {:X}", config);
 
-            // start a "one-shot" converstion on the selected input
+            // start a "one-shot" conversion on the selected input
             let _ = driver.start_sync().unwrap();
 
             // wait until the status register tells us there is data to read
