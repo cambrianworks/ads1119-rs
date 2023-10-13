@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             MuxFlags::AN2_SINGLE_ENDED,
             MuxFlags::AN3_SINGLE_ENDED,
         ] {
-            let raw_value = driver.read_input(mux.clone())?;
+            let raw_value = driver.read_input(&mux)?;
             println!(
                 "[{:X}] Read (conv) value: {:.5}V",
                 mux.bits(),

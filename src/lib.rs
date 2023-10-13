@@ -103,7 +103,7 @@ where
     /// Read data from the given input.
     ///
     /// This function has no pre-conditions and can be called repeatedly.
-    pub fn read_input(&mut self, mux: MuxFlags) -> Result<u16, I2C::Error> {
+    pub fn read_input(&mut self, mux: &MuxFlags) -> Result<u16, I2C::Error> {
         // write the config to set the input we want. Leave other fields unset (default)
         self.write_config(mux.bits())?;
 
