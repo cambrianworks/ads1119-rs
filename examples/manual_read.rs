@@ -2,7 +2,7 @@ use std::{error::Error, time::Duration};
 
 use linux_embedded_hal::I2cdev;
 
-use ads1119::{single_ended_rdata_to_scaled_voltage, Ads1119, MuxFlags, STATUS_CONV_RDY};
+use ads1119::{single_ended_rdata_to_scaled_voltage, Ads1119, InputSelection, STATUS_CONV_RDY};
 
 /// Example of using the library to read single-ended data
 /// off each of the four inputs using the low-level functions. If you want to just read
@@ -27,10 +27,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     loop {
         // read each input on the ADS1119
         for mux in [
-            MuxFlags::AN0_SINGLE_ENDED,
-            MuxFlags::AN1_SINGLE_ENDED,
-            MuxFlags::AN2_SINGLE_ENDED,
-            MuxFlags::AN3_SINGLE_ENDED,
+            InputSelection::AN0_SINGLE_ENDED,
+            InputSelection::AN1_SINGLE_ENDED,
+            InputSelection::AN2_SINGLE_ENDED,
+            InputSelection::AN3_SINGLE_ENDED,
         ] {
             // write the config to set the input we want. Leave other fields unset (default)
             // println!("writing config...");
@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let raw_value = driver.read_data().unwrap();
             println!(
                 "[{:X}] Read (conv) value: {:.5}V",
-                mux,
+                mux.bits(),
                 // convert the data to a voltage
                 single_ended_rdata_to_scaled_voltage(raw_value)
             );

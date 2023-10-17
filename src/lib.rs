@@ -100,12 +100,17 @@ where
             .and(Ok(u16::from_be_bytes(read_buffer)))
     }
 
-    /// Read data from the given input.
+    /// Read data from the given input with "one-shot" semantics.
     ///
-    /// This function has no pre-conditions and can be called repeatedly.
-    pub fn read_input(&mut self, mux: &MuxFlags) -> Result<u16, I2C::Error> {
+    /// **IMPORTANT PRECONDITION**
+    /// This function requires exclusive access to the ADS1119 for the duration of the call. This is enforced,
+    /// implicitly, by the API, but this must also be true globally. This means that no other
+    /// process with access to this I2C bus can access the ADS1119 during this call.
+    ///
+    /// Besides exclusive access to the ADS1119, no other pre-conditions and `read_input_oneshot`` can be called repeatedly.
+    pub fn read_input_oneshot(&mut self, input: &InputSelection) -> Result<u16, I2C::Error> {
         // write the config to set the input we want. Leave other fields unset (default)
-        self.write_config(mux.bits())?;
+        self.write_config(input.bits())?;
 
         // start a "one-shot" conversion on the selected input
         let _ = self.start_sync()?;
@@ -158,16 +163,24 @@ impl CmdFlags {
     pub const WREG: u8 = 0b0100_0000;
 }
 
-/// Input Mux flags
+/// Input Mux selection
 /// See 8.6.2.1 Configuration Register
 /// See 8.3.1 Multiplexer
-bitflags! {
-    #[derive(Clone, Debug)]
-    pub struct MuxFlags: u8 {
-    const AN0_SINGLE_ENDED= 0b0110_0000;
-    const AN1_SINGLE_ENDED= 0b1000_0000;
-    const AN2_SINGLE_ENDED= 0b1010_0000;
-    const AN3_SINGLE_ENDED= 0b1100_0000;
+pub enum InputSelection {
+    AN0_SINGLE_ENDED,
+    AN1_SINGLE_ENDED,
+    AN2_SINGLE_ENDED,
+    AN3_SINGLE_ENDED,
+}
+
+impl InputSelection {
+    pub fn bits(&self) -> u8 {
+        match self {
+            InputSelection::AN0_SINGLE_ENDED => 0b0110_0000,
+            InputSelection::AN1_SINGLE_ENDED => 0b1000_0000,
+            InputSelection::AN2_SINGLE_ENDED => 0b1010_0000,
+            InputSelection::AN3_SINGLE_ENDED => 0b1100_0000,
+        }
     }
 }
 
