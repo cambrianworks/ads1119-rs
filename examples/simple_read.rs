@@ -2,7 +2,7 @@ use std::{error::Error, time::Duration};
 
 use linux_embedded_hal::I2cdev;
 
-use ads1119::{single_ended_rdata_to_scaled_voltage, Ads1119, InputSelection, STATUS_CONV_RDY};
+use ads1119::{single_ended_rdata_to_scaled_voltage, Ads1119, InputSelection};
 
 // Example of reading from the ADS1119's 4 inputs
 fn main() -> Result<(), Box<dyn Error>> {
@@ -12,10 +12,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     loop {
         // read each input on the ADS1119
         for mux in [
-            InputSelection::AN0_SINGLE_ENDED,
-            InputSelection::AN1_SINGLE_ENDED,
-            InputSelection::AN2_SINGLE_ENDED,
-            InputSelection::AN3_SINGLE_ENDED,
+            InputSelection::AN0SingleEnded,
+            InputSelection::AN1SingleEnded,
+            InputSelection::AN2SingleEnded,
+            InputSelection::AN3SingleEnded,
         ] {
             let raw_value = driver.read_input_oneshot(&mux)?;
             println!(

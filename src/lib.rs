@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use bitflags::bitflags;
 use embedded_hal::i2c::I2c;
 
 pub struct Ads1119<I2C> {
@@ -166,20 +165,21 @@ impl CmdFlags {
 /// Input Mux selection
 /// See 8.6.2.1 Configuration Register
 /// See 8.3.1 Multiplexer
+#[derive(Clone, Debug)]
 pub enum InputSelection {
-    AN0_SINGLE_ENDED,
-    AN1_SINGLE_ENDED,
-    AN2_SINGLE_ENDED,
-    AN3_SINGLE_ENDED,
+    AN0SingleEnded,
+    AN1SingleEnded,
+    AN2SingleEnded,
+    AN3SingleEnded,
 }
 
 impl InputSelection {
     pub fn bits(&self) -> u8 {
         match self {
-            InputSelection::AN0_SINGLE_ENDED => 0b0110_0000,
-            InputSelection::AN1_SINGLE_ENDED => 0b1000_0000,
-            InputSelection::AN2_SINGLE_ENDED => 0b1010_0000,
-            InputSelection::AN3_SINGLE_ENDED => 0b1100_0000,
+            InputSelection::AN0SingleEnded => 0b0110_0000,
+            InputSelection::AN1SingleEnded => 0b1000_0000,
+            InputSelection::AN2SingleEnded => 0b1010_0000,
+            InputSelection::AN3SingleEnded => 0b1100_0000,
         }
     }
 }

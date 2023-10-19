@@ -27,10 +27,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     loop {
         // read each input on the ADS1119
         for mux in [
-            InputSelection::AN0_SINGLE_ENDED,
-            InputSelection::AN1_SINGLE_ENDED,
-            InputSelection::AN2_SINGLE_ENDED,
-            InputSelection::AN3_SINGLE_ENDED,
+            InputSelection::AN0SingleEnded,
+            InputSelection::AN1SingleEnded,
+            InputSelection::AN2SingleEnded,
+            InputSelection::AN3SingleEnded,
         ] {
             // write the config to set the input we want. Leave other fields unset (default)
             // println!("writing config...");
