@@ -112,16 +112,16 @@ where
         self.write_config(input.bits())?;
 
         // start a "one-shot" conversion on the selected input
-        let _ = self.start_sync()?;
+        self.start_sync()?;
 
         // wait until the status register tells us there is data to read
         loop {
             let status = self.read_status()?;
-            // println!("CURRENT STATUS: {:#010b} ", status);
             if status & STATUS_CONV_RDY != 0 {
-                // println!("--> Data is READY: {:#010b} ", status);
                 break;
             }
+
+            // need to poll at least as fast as the data rate (default is 50ms (20 SPS))
             std::thread::sleep(Duration::from_millis(10))
         }
 
