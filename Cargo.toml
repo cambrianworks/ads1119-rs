@@ -1,0 +1,17 @@
+[package]
+name = "ads1119"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# the latest RC
+embedded-hal = "=1.0.0-rc.1"
+# compatible with embedded-hal 1.0.0-rc.1
+linux-embedded-hal = { version = "=0.4.0-alpha.3", git = "https://github.com/rust-embedded/linux-embedded-hal", rev = "27daf71" } 
+thiserror = "1"
+
+[examples]
+name = "simple_read"
+
+[profile.release]
+lto = true
