@@ -1,6 +1,5 @@
-use std::time::Duration;
-
 use embedded_hal::i2c::I2c;
+use std::time::{Duration, Instant};
 
 pub struct Ads1119<I2C> {
     i2c: I2C,
@@ -107,13 +106,19 @@ where
     /// process with access to this I2C bus can access the ADS1119 during this call.
     ///
     /// Besides exclusive access to the ADS1119, no other pre-conditions and `read_input_oneshot`` can be called repeatedly.
-    pub fn read_input_oneshot(&mut self, input: &InputSelection) -> Result<u16, I2C::Error> {
+    pub fn read_input_oneshot(
+        &mut self,
+        input: &InputSelection,
+    ) -> Result<u16, Ads1119Err<I2C::Error>> {
         // write the config to set the input we want. Leave other fields unset (default)
         self.write_config(input.bits())?;
 
         // start a "one-shot" conversion on the selected input
         self.start_sync()?;
 
+        let timeout_duration = Duration::from_secs(1);
+
+        let start_time = Instant::now();
         // wait until the status register tells us there is data to read
         loop {
             let status = self.read_status()?;
@@ -121,13 +126,27 @@ where
                 break;
             }
 
+            // Check if the timeout duration has elapsed
+            if start_time.elapsed() >= timeout_duration {
+                return Err(Ads1119Err::ConversionTimeout(timeout_duration.as_millis()));
+            }
+
             // need to poll at least as fast as the data rate (default is 50ms (20 SPS))
             std::thread::sleep(Duration::from_millis(10))
         }
 
         // read the conversion data
-        self.read_data()
+        Ok(self.read_data()?)
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum Ads1119Err<I2CE> {
+    #[error("conversion timed out after waiting {0}ms",)]
+    ConversionTimeout(u128),
+
+    #[error("I2C error")]
+    I2CError{#[from] source: I2CE},
 }
 
 /// Interpret the raw data read from one of the inputs as a voltage
