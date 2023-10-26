@@ -142,11 +142,14 @@ where
 
 #[derive(thiserror::Error, Debug)]
 pub enum Ads1119Err<I2CE> {
-    #[error("conversion timed out after waiting {0}ms",)]
+    #[error("conversion timed out after waiting {0}ms")]
     ConversionTimeout(u128),
 
     #[error("I2C error")]
-    I2CError{#[from] source: I2CE},
+    I2CError {
+        #[from]
+        source: I2CE,
+    },
 }
 
 /// Interpret the raw data read from one of the inputs as a voltage
