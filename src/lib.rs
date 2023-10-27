@@ -187,7 +187,7 @@ impl CmdFlags {
 /// Input Mux selection
 /// See 8.6.2.1 Configuration Register
 /// See 8.3.1 Multiplexer
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum InputSelection {
     AN0SingleEnded,
     AN1SingleEnded,
