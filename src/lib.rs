@@ -249,6 +249,6 @@ mod test {
     fn rdata_to_voltage_gt_max_neg() {
         // one bit greater than most negative value
         let data: u16 = 0b1000_0000_0000_0001;
-        assert!((single_ended_rdata_to_scaled_voltage(data as i16)- -V_MAX).abs() < EPS);
+        assert!((single_ended_rdata_to_scaled_voltage(data as i16) - -V_MAX).abs() < EPS);
     }
 }
