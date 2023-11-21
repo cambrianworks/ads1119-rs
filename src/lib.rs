@@ -85,17 +85,16 @@ where
     }
 
     /// Reads data from the currently selected input.
-    /// The u16 result is encoded as Two's Complement.
     ///
     /// Currently, the library has only been used to read positive, single-ended values.
     ///
     /// See 8.5.3.5 RDATA
     /// See 8.5.2 Data Format
-    pub fn read_data(&mut self) -> Result<u16, I2C::Error> {
+    pub fn read_data(&mut self) -> Result<i16, I2C::Error> {
         let mut read_buffer = [0u8, 0u8];
         self.i2c
             .write_read(self.address, &[CmdFlags::RDATA], &mut read_buffer)
-            .and(Ok(u16::from_be_bytes(read_buffer)))
+            .and(Ok(i16::from_be_bytes(read_buffer)))
     }
 
     /// Read data from the given input with "one-shot" semantics.
@@ -109,7 +108,7 @@ where
     pub fn read_input_oneshot(
         &mut self,
         input: &InputSelection,
-    ) -> Result<u16, Ads1119Err<I2C::Error>> {
+    ) -> Result<i16, Ads1119Err<I2C::Error>> {
         // write the config to set the input we want. Leave other fields unset (default)
         self.write_config(input.bits())?;
 
@@ -156,21 +155,14 @@ pub enum Ads1119Err<I2CE> {
 /// Currently, this function assumes the reference voltage is the internal 2.048V source
 /// See 8.3.3 Voltage Reference
 ///     8.5.2 Data Format
-pub fn single_ended_rdata_to_scaled_voltage(raw_data: u16) -> f32 {
-    // Check the sign bit (Bit 15)
-    let unscaled_voltage = if (raw_data & 0x8000) != 0 {
-        // // Two's complement conversion for negative values
-        raw_data.wrapping_neg() as i16
-    } else {
-        raw_data as i16
-    };
-
+pub fn single_ended_rdata_to_scaled_voltage(raw_data: i16) -> f32 {
     // Positive value, directly scale based on the ADS1119's configuration
     // In this case, the reference voltage is 2.048V
     const REFERENCE_VOLTAGE: f32 = 2.048;
 
     // Scale the voltage to the desired range (e.g., 0V to 2.048V)
-    (unscaled_voltage as f32 / 0x7FFF as f32) * REFERENCE_VOLTAGE
+    // Note that casting i16 to f32 is lossless and safe
+    (raw_data as f32 / 0x7FFF as f32) * REFERENCE_VOLTAGE
 }
 /// Command Flags
 /// See 8.5.3
@@ -230,30 +222,33 @@ mod test {
     #[test]
     fn rdata_to_voltage_0() {
         let data: u16 = 0b0000_0000_0000_0000;
-        assert_eq!(single_ended_rdata_to_scaled_voltage(data), 0.0f32);
+        assert_eq!(single_ended_rdata_to_scaled_voltage(data as i16), 0.0f32);
     }
 
     #[test]
     fn rdata_to_voltage_max_pos() {
         let data: u16 = 0b0111_1111_1111_1111;
-        assert!(single_ended_rdata_to_scaled_voltage(data) - 2.048f32 < EPS);
+        assert!((single_ended_rdata_to_scaled_voltage(data as i16) - V_MAX).abs() < EPS);
     }
 
     #[test]
     fn rdata_to_voltage_lt_max() {
+        // one bit less than max
         let data: u16 = 0b0111_1111_1111_1110;
-        assert!(single_ended_rdata_to_scaled_voltage(data) < V_MAX);
+        assert!(single_ended_rdata_to_scaled_voltage(data as i16) < V_MAX);
     }
 
     #[test]
     fn rdata_to_voltage_max_neg() {
+        // -32768
         let data: u16 = 0b1000_0000_0000_0000;
-        assert!(dbg!((single_ended_rdata_to_scaled_voltage(data) - -2.048f32).abs()) < EPS);
+        assert!(dbg!((single_ended_rdata_to_scaled_voltage(data as i16) - -V_MAX).abs()) < EPS);
     }
 
     #[test]
     fn rdata_to_voltage_gt_max_neg() {
+        // one bit greater than most negative value
         let data: u16 = 0b1000_0000_0000_0001;
-        assert!(dbg!(single_ended_rdata_to_scaled_voltage(data)) > -V_MAX);
+        assert!((single_ended_rdata_to_scaled_voltage(data as i16)- -V_MAX).abs() < EPS);
     }
 }
