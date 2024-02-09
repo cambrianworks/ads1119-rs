@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 # the latest RC
-embedded-hal = "=1.0.0-rc.1"
+embedded-hal = "1.0"
 # compatible with embedded-hal 1.0.0-rc.1
-linux-embedded-hal = { version = "=0.4.0-alpha.3", git = "https://github.com/rust-embedded/linux-embedded-hal", rev = "27daf71" } 
+linux-embedded-hal = "0.4"
 thiserror = "1"
 
 [examples]
