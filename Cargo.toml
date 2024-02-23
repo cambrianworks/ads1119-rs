@@ -10,6 +10,11 @@ embedded-hal = "1.0"
 linux-embedded-hal = "0.4"
 thiserror = "1"
 
+[dev-dependencies]
+embedded-hal-mock = { version = "0.10", default-features = false, features = [
+    "eh1",
+] }
+
 [examples]
 name = "simple_read"
 

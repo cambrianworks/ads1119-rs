@@ -18,6 +18,10 @@ where
         }
     }
 
+    pub fn destroy(self) -> I2C {
+        self.i2c
+    }
+
     /// Read the config register
     /// See 8.5.3.6 RREG
     ///
