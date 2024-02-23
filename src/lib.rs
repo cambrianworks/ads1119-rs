@@ -305,11 +305,22 @@ mod test {
     }
 
     #[test]
+    fn can_reset() {
+        let mut device =
+            new_ads1119(&[I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::RESET])]);
+        device.reset().unwrap();
+        destroy_ads1119(device);
+    }
+
+    #[test]
     fn can_read_input_oneshot() {
         let input = InputSelection::AN0SingleEnded;
         let expected_output = 16383_u16;
         let mut device = new_ads1119(&[
-            I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::WREG | RegSelectFlags::CONFIG, input.bits()]),
+            I2cTransaction::write(
+                DEVICE_ADDRESS,
+                vec![CmdFlags::WREG | RegSelectFlags::CONFIG, input.bits()],
+            ),
             I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::START_SYNC]),
             I2cTransaction::write_read(
                 DEVICE_ADDRESS,
@@ -324,10 +335,13 @@ mod test {
             I2cTransaction::write_read(
                 DEVICE_ADDRESS,
                 vec![CmdFlags::RDATA],
-                vec![(expected_output >> 8) as u8,expected_output as u8],
+                vec![(expected_output >> 8) as u8, expected_output as u8],
             ),
         ]);
-        assert_eq!(device.read_input_oneshot(&input).unwrap(),expected_output as i16);
+        assert_eq!(
+            device.read_input_oneshot(&input).unwrap(),
+            expected_output as i16
+        );
         destroy_ads1119(device);
     }
 }
