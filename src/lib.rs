@@ -222,6 +222,8 @@ pub const STATUS_CONV_RDY: u8 = 0b1000_0000;
 #[cfg(test)]
 mod test {
 
+    use std::panic;
+
     use crate::Ads1119Err::ConversionTimeout;
     use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 
@@ -279,6 +281,17 @@ mod test {
 
     fn destroy_ads1119(device: Ads1119<I2cMock>) {
         device.destroy().done();
+    }
+
+    // run "done" on the device but ignore if all
+    // expectations were not consumed
+    fn destroy_ads1119_silently(device: Ads1119<I2cMock>) {
+        let prev_hook = panic::take_hook();
+        panic::set_hook(Box::new(|_| {}));
+        if let Err(_) = panic::catch_unwind(|| {
+            destroy_ads1119(device);
+        })  {};
+        panic::set_hook(prev_hook);
     }
 
     #[test]
@@ -373,9 +386,9 @@ mod test {
             // start conversion
             I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::START_SYNC]),
         ];
-        // ensure a timeout will occur by constructing each transaction that
-        // "read_input_oneshot" will use (returning a "not ready" status each time)
-        for _ in 0..READ_INPUT_STATUS_REQUEST_COUNT_BEFORE_TIMEOUT {
+        // ensure a timeout will occur by constructing all transaction that
+        // "read_input_oneshot" will potentially use (returning a "not ready" status each time)
+        for _ in 0..READ_INPUT_STATUS_REQUEST_COUNT_BEFORE_TIMEOUT*2 {
             transactions.push(I2cTransaction::write_read(
                 DEVICE_ADDRESS,
                 vec![CmdFlags::RREG | RegSelectFlags::STATUS],
@@ -393,6 +406,6 @@ mod test {
         } else {
             panic!("read_input_oneshot did not time out as expected");
         }
-        destroy_ads1119(device);
+        destroy_ads1119_silently(device);
     }
 }
