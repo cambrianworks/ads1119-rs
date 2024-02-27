@@ -227,7 +227,7 @@ mod test {
 
     // number of times that the read input loop will sleep before a timeout occurs
     const READ_INPUT_SLEEP_COUNT_BEFORE_TIMEOUT: u32 =
-        READ_INPUT_TIMEOUT.as_millis() as u32 / READ_INPUT_SLEEP.as_millis() as u32;
+        (READ_INPUT_TIMEOUT.as_millis() as u32 / READ_INPUT_SLEEP.as_millis() as u32) + 1;
 
     const EPS: f32 = 0.0001;
     const V_MAX: f32 = 2.048;
@@ -372,16 +372,9 @@ mod test {
             ),
             // start conversion
             I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::START_SYNC]),
-            // "read_input_oneshot" is now looping waiting for status to indicate that data is available to be read
-            // this provides a default status to indicate "not ready yet"
-            I2cTransaction::write_read(
-                DEVICE_ADDRESS,
-                vec![CmdFlags::RREG | RegSelectFlags::STATUS],
-                vec![NOT_READY_STATUS],
-            ),
         ];
         // ensure a timeout will occur by constructing each transaction that
-        // "read_input_oneshot" will use
+        // "read_input_oneshot" will use (returning a not ready status each time)
         for _ in 0..READ_INPUT_SLEEP_COUNT_BEFORE_TIMEOUT {
             transactions.push(I2cTransaction::write_read(
                 DEVICE_ADDRESS,
