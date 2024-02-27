@@ -288,9 +288,10 @@ mod test {
     fn destroy_ads1119_silently(device: Ads1119<I2cMock>) {
         let prev_hook = panic::take_hook();
         panic::set_hook(Box::new(|_| {}));
-        if let Err(_) = panic::catch_unwind(|| {
+        let destroy_closure = || {
             destroy_ads1119(device);
-        })  {};
+        };
+        if panic::catch_unwind(destroy_closure).is_err() {};
         panic::set_hook(prev_hook);
     }
 
@@ -388,7 +389,7 @@ mod test {
         ];
         // ensure a timeout will occur by constructing all transaction that
         // "read_input_oneshot" will potentially use (returning a "not ready" status each time)
-        for _ in 0..READ_INPUT_STATUS_REQUEST_COUNT_BEFORE_TIMEOUT*2 {
+        for _ in 0..READ_INPUT_STATUS_REQUEST_COUNT_BEFORE_TIMEOUT * 2 {
             transactions.push(I2cTransaction::write_read(
                 DEVICE_ADDRESS,
                 vec![CmdFlags::RREG | RegSelectFlags::STATUS],
