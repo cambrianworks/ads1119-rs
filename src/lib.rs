@@ -387,7 +387,7 @@ mod test {
             // start conversion
             I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::START_SYNC]),
         ];
-        // ensure a timeout will occur by constructing all transaction that
+        // ensure a timeout will occur by constructing all transactions that
         // "read_input_oneshot" will potentially use (returning a "not ready" status each time)
         for _ in 0..READ_INPUT_STATUS_REQUEST_COUNT_BEFORE_TIMEOUT * 2 {
             transactions.push(I2cTransaction::write_read(
