@@ -225,8 +225,8 @@ mod test {
     use crate::Ads1119Err::ConversionTimeout;
     use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 
-    // number of times that the read input loop will sleep before a timeout occurs
-    const READ_INPUT_SLEEP_COUNT_BEFORE_TIMEOUT: u32 =
+    // number of times that the read input loop will call read_status before a timeout occurs
+    const READ_INPUT_STATUS_REQUEST_COUNT_BEFORE_TIMEOUT: u32 =
         (READ_INPUT_TIMEOUT.as_millis() as u32 / READ_INPUT_SLEEP.as_millis() as u32) + 1;
 
     const EPS: f32 = 0.0001;
@@ -374,8 +374,8 @@ mod test {
             I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::START_SYNC]),
         ];
         // ensure a timeout will occur by constructing each transaction that
-        // "read_input_oneshot" will use (returning a not ready status each time)
-        for _ in 0..READ_INPUT_SLEEP_COUNT_BEFORE_TIMEOUT {
+        // "read_input_oneshot" will use (returning a "not ready" status each time)
+        for _ in 0..READ_INPUT_STATUS_REQUEST_COUNT_BEFORE_TIMEOUT {
             transactions.push(I2cTransaction::write_read(
                 DEVICE_ADDRESS,
                 vec![CmdFlags::RREG | RegSelectFlags::STATUS],
