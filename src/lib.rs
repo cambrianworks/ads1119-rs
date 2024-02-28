@@ -21,6 +21,7 @@ where
         }
     }
 
+    /// Destroy the `Ads1119` instance and return its I2C instance
     pub fn destroy(self) -> I2C {
         self.i2c
     }
