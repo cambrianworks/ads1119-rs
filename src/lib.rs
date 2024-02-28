@@ -1,6 +1,9 @@
 use embedded_hal::i2c::I2c;
 use std::time::{Duration, Instant};
 
+const READ_INPUT_TIMEOUT: Duration = Duration::from_secs(1);
+const READ_INPUT_SLEEP: Duration = Duration::from_millis(10);
+
 pub struct Ads1119<I2C> {
     i2c: I2C,
     // I2C address
@@ -16,6 +19,11 @@ where
             i2c,
             address: i2c_address,
         }
+    }
+
+    /// Destroy the `Ads1119` instance and return its I2C instance
+    pub fn destroy(self) -> I2C {
+        self.i2c
     }
 
     /// Read the config register
@@ -115,8 +123,6 @@ where
         // start a "one-shot" conversion on the selected input
         self.start_sync()?;
 
-        let timeout_duration = Duration::from_secs(1);
-
         let start_time = Instant::now();
         // wait until the status register tells us there is data to read
         loop {
@@ -126,12 +132,14 @@ where
             }
 
             // Check if the timeout duration has elapsed
-            if start_time.elapsed() >= timeout_duration {
-                return Err(Ads1119Err::ConversionTimeout(timeout_duration.as_millis()));
+            if start_time.elapsed() >= READ_INPUT_TIMEOUT {
+                return Err(Ads1119Err::ConversionTimeout(
+                    READ_INPUT_TIMEOUT.as_millis(),
+                ));
             }
 
             // need to poll at least as fast as the data rate (default is 50ms (20 SPS))
-            std::thread::sleep(Duration::from_millis(10))
+            std::thread::sleep(READ_INPUT_SLEEP)
         }
 
         // read the conversion data
@@ -215,6 +223,15 @@ pub const STATUS_CONV_RDY: u8 = 0b1000_0000;
 #[cfg(test)]
 mod test {
 
+    use std::panic;
+
+    use crate::Ads1119Err::ConversionTimeout;
+    use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
+
+    // number of times that the read input loop will call read_status before a timeout occurs
+    const READ_INPUT_STATUS_REQUEST_COUNT_BEFORE_TIMEOUT: u32 =
+        (READ_INPUT_TIMEOUT.as_millis() as u32 / READ_INPUT_SLEEP.as_millis() as u32) + 1;
+
     const EPS: f32 = 0.0001;
     const V_MAX: f32 = 2.048;
 
@@ -250,5 +267,147 @@ mod test {
         // one bit greater than most negative value
         let data: u16 = 0b1000_0000_0000_0001;
         assert!((single_ended_rdata_to_scaled_voltage(data as i16) - -V_MAX).abs() < EPS);
+    }
+
+    const DEFAULT_CONFIG: u8 = 0b0000_0000;
+    // Since the only bit that is checked is the MSB
+    // the default status should have MSB == 0
+    const NOT_READY_STATUS: u8 = !0b1000_0000;
+    const DEVICE_ADDRESS: u8 = 0b0000_0000;
+
+    fn new_ads1119(transactions: &[I2cTransaction]) -> Ads1119<I2cMock> {
+        let device_address = 0;
+        Ads1119::new(I2cMock::new(transactions), device_address)
+    }
+
+    fn destroy_ads1119(device: Ads1119<I2cMock>) {
+        device.destroy().done();
+    }
+
+    // run "done" on the device but ignore if all
+    // expectations were not consumed
+    fn destroy_ads1119_silently(device: Ads1119<I2cMock>) {
+        let prev_hook = panic::take_hook();
+        panic::set_hook(Box::new(|_| {}));
+        let destroy_closure = || {
+            destroy_ads1119(device);
+        };
+        if panic::catch_unwind(destroy_closure).is_err() {};
+        panic::set_hook(prev_hook);
+    }
+
+    #[test]
+    fn can_read_config() {
+        let mut device = new_ads1119(&[I2cTransaction::write_read(
+            DEVICE_ADDRESS,
+            vec![CmdFlags::RREG | RegSelectFlags::CONFIG],
+            vec![DEFAULT_CONFIG],
+        )]);
+        assert_eq!(device.read_config().unwrap(), 0b0000_0000);
+        destroy_ads1119(device);
+    }
+
+    #[test]
+    fn can_write_config() {
+        let value = 0_u8;
+        let mut device = new_ads1119(&[I2cTransaction::write(
+            DEVICE_ADDRESS,
+            vec![CmdFlags::WREG | RegSelectFlags::CONFIG, value],
+        )]);
+        device.write_config(value).unwrap();
+        destroy_ads1119(device);
+    }
+
+    #[test]
+    fn can_read_status() {
+        let mut device = new_ads1119(&[I2cTransaction::write_read(
+            DEVICE_ADDRESS,
+            vec![CmdFlags::RREG | RegSelectFlags::STATUS],
+            vec![NOT_READY_STATUS],
+        )]);
+        assert_eq!(device.read_status().unwrap(), NOT_READY_STATUS);
+        destroy_ads1119(device);
+    }
+
+    #[test]
+    fn can_reset() {
+        let mut device =
+            new_ads1119(&[I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::RESET])]);
+        device.reset().unwrap();
+        destroy_ads1119(device);
+    }
+
+    #[test]
+    fn can_read_input_oneshot() {
+        let input = InputSelection::AN0SingleEnded;
+        let expected_output = 16383_u16;
+        let mut device = new_ads1119(&[
+            // sets the config to use the given input
+            I2cTransaction::write(
+                DEVICE_ADDRESS,
+                vec![CmdFlags::WREG | RegSelectFlags::CONFIG, input.bits()],
+            ),
+            // start conversion
+            I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::START_SYNC]),
+            // "read_input_oneshot" is now looping waiting for status to indicate that data is available to be read
+            // this provides a default status to indicate "not ready yet"
+            I2cTransaction::write_read(
+                DEVICE_ADDRESS,
+                vec![CmdFlags::RREG | RegSelectFlags::STATUS],
+                vec![NOT_READY_STATUS],
+            ),
+            // indicate data is now available
+            I2cTransaction::write_read(
+                DEVICE_ADDRESS,
+                vec![CmdFlags::RREG | RegSelectFlags::STATUS],
+                vec![STATUS_CONV_RDY],
+            ),
+            // data is retrieved
+            I2cTransaction::write_read(
+                DEVICE_ADDRESS,
+                vec![CmdFlags::RDATA],
+                vec![(expected_output >> 8) as u8, expected_output as u8],
+            ),
+        ]);
+        assert_eq!(
+            device.read_input_oneshot(&input).unwrap(),
+            expected_output as i16
+        );
+        destroy_ads1119(device);
+    }
+
+    #[test]
+    fn test_read_input_oneshot_timeout() {
+        let input = InputSelection::AN0SingleEnded;
+        let mut transactions = vec![
+            // sets the config to use the given input
+            I2cTransaction::write(
+                DEVICE_ADDRESS,
+                vec![CmdFlags::WREG | RegSelectFlags::CONFIG, input.bits()],
+            ),
+            // start conversion
+            I2cTransaction::write(DEVICE_ADDRESS, vec![CmdFlags::START_SYNC]),
+        ];
+        // ensure a timeout will occur by constructing all transactions that
+        // "read_input_oneshot" will potentially use (returning a "not ready" status each time)
+        for _ in 0..READ_INPUT_STATUS_REQUEST_COUNT_BEFORE_TIMEOUT * 2 {
+            transactions.push(I2cTransaction::write_read(
+                DEVICE_ADDRESS,
+                vec![CmdFlags::RREG | RegSelectFlags::STATUS],
+                vec![NOT_READY_STATUS],
+            ))
+        }
+        let mut device = new_ads1119(&transactions);
+        if let Err(e) = device.read_input_oneshot(&input) {
+            match e {
+                ConversionTimeout(_) => {}
+                e => {
+                    panic!("unexpected error: {}, expected a ConversionTimeout", e);
+                }
+            }
+        } else {
+            panic!("read_input_oneshot did not time out as expected");
+        }
+        destroy_ads1119_silently(device);
     }
 }
